@@ -1,0 +1,117 @@
+______________________________________________________________________
+                
+    JETSON AGX ORIN: UNIFIED MASTER SETUP GUIDE
+______________________________________________________________________
+
+This document combines the LEGACY setup (Jetson-Inference/SSD) with
+the MODERN setup (YOLOv8 Control Center).
+
+======================================================================
+PART 1: SYSTEM BASE (REQUIRED FOR EVERYTHING)
+======================================================================
+
+[1.1] UAFS WI-FI CONFIGURATION
+      * [cite_start]Security:      WPA/WPA2 Enterprise [cite: 1, 2]
+      * [cite_start]Auth Method:   Tunneled TLS [cite: 4]
+      * [cite_start]CA Cert:       "No CA certificate is required" [cite: 6]
+      * [cite_start]Inner Auth:    MSCHAPv2 (no EAP) [cite: 8]
+      * [cite_start]Credentials:   Your UAFS Username & Password [cite: 10]
+
+[1.2] ENABLE "NO PASSWORD" SUDO
+      1. Open terminal: $ cd ~
+      2. [cite_start]Edit sudoers:  $ sudo visudo [cite: 21]
+      3. Scroll to bottom. Press 'Insert'.
+      4. [cite_start]Add line:      uafs ALL=(ALL) NOPASSWD: ALL [cite: 38]
+      5. [cite_start]Save/Exit:     Press 'Esc', type :wq, Enter. [cite: 41]
+
+[1.3] GITHUB & SSH SETUP
+      1. [cite_start]Install Git:   $ sudo apt install git [cite: 53]
+      2. [cite_start]Keygen:        $ ssh-keygen -t rsa -b 4096 -C "your_email" [cite: 55]
+      3. [cite_start]Start Agent:   $ eval "$(ssh-agent -s)" [cite: 56]
+      4. [cite_start]Add Key:       $ ssh-add ~/.ssh/id_rsa [cite: 57]
+      5. [cite_start]View Key:      $ cat ~/.ssh/id_rsa.pub [cite: 58]
+      (Copy the output to your GitHub Account Settings)
+
+[1.4] INSTALL VS CODE (ARM64)
+      1. [cite_start]Helper:        $ sudo apt-get install curl [cite: 44]
+      2. [cite_start]Download:      $ curl -L https://github.com/toolboc/vscode/releases/download/1.32.3/code-oss_1.32.3-arm64.deb -o code-oss.deb [cite: 45]
+      3. [cite_start]Install:       $ sudo dpkg -i code-oss.deb [cite: 46]
+      4. [cite_start]Setup:         Launch VS Code -> Extensions -> Install "Python" [cite: 48]
+
+[1.5] REMOTE ACCESS (NoMachine)
+      1. [cite_start]Download:      $ wget https://www.nomachine.com/free/arm/v8/deb -O nomachine.deb [cite: 134]
+      2. [cite_start]Install:       $ sudo dpkg -i nomachine.deb [cite: 135]
+
+[1.6] HARDWARE PERMISSIONS (GPIO/I2C/SERIAL)
+      1. [cite_start]Python Libs:   $ sudo pip3 install Jetson.GPIO adafruit-circuitpython-servokit pyserial [cite: 98, 123, 142]
+      2. [cite_start]Groups:        $ sudo groupadd -f -r gpio [cite: 125]
+                        [cite_start]$ sudo usermod -a -G gpio uafs [cite: 126]
+                        [cite_start]$ sudo usermod -aG i2c uafs [cite: 124]
+                        [cite_start]$ sudo usermod -aG dialout uafs [cite: 99]
+      3. [cite_start]Apply:         $ sudo udevadm control --reload-rules && sudo udevadm trigger [cite: 127]
+      4. [cite_start]Reboot:        $ sudo reboot now [cite: 128]
+
+======================================================================
+PART 2: THE "MODERN" WORKFLOW (YOLOv8 APP)
+======================================================================
+Use this for the new "YoloControlCenter" application.
+
+[2.1] CLEANUP
+      $ sudo pip3 uninstall torch torchvision -y
+
+[2.2] INSTALL PYTORCH 2.0 (For Orin/JetPack 5)
+      $ wget https://developer.download.nvidia.com/compute/redist/jp/v511/pytorch/torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
+      $ pip3 install torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
+
+[2.3] INSTALL TORCHVISION
+      $ sudo apt-get install libjpeg-dev zlib1g-dev -y
+      $ git clone --branch v0.15.2 https://github.com/pytorch/vision torchvision
+      $ cd torchvision
+      $ export BUILD_VERSION=0.15.2
+      $ python3 setup.py install --user
+      $ cd ..
+
+[2.4] APP DEPENDENCIES
+      $ pip3 install ultralytics customtkinter Pillow
+
+======================================================================
+PART 3: THE "LEGACY" WORKFLOW (Dusty-NV)
+======================================================================
+Use this for the older 'jetson-inference' and 'pytorch-ssd' projects.
+
+[3.1] INSTALL SYSTEM LIBRARIES
+      [cite_start]$ sudo apt-get install git cmake libpython3-dev python3-numpy [cite: 76]
+      [cite_start]$ sudo apt-get install v4l-utils [cite: 89]
+
+[3.2] BUILD JETSON-INFERENCE (Source)
+      1. [cite_start]Clone:   $ git clone --recursive https://github.com/dusty-nv/jetson-inference [cite: 78]
+      2. Build:   $ cd jetson-inference
+                  [cite_start]$ mkdir build && cd build [cite: 80]
+                  [cite_start]$ cmake ../ [cite: 82]
+                  [cite_start]$ make -j$(nproc) [cite: 84]
+                  [cite_start]$ sudo make install [cite: 85]
+      3. [cite_start]Config:  $ sudo ldconfig [cite: 86]
+
+[3.3] LEGACY SSD SETUP
+      1. [cite_start]Clone:   $ git clone -b res-512 --recursive https://github.com/dusty-nv/pytorch-ssd.git [cite: 106]
+      2. [cite_start]Rename:  $ mv pytorch-ssd ssd [cite: 108]
+      3. [cite_start]Data:    $ cd ssd/data && git clone --recursive https://github.com/M-pixel87/avcAIDATA.git [cite: 111]
+
+[3.4] DOCKER (Recommended for Legacy)
+      To run this without breaking the Modern YOLO setup:
+      $ cd jetson-inference
+      [cite_start]$ docker/run.sh [cite: 96]
+
+======================================================================
+PART 4: RUNNING THE CONTROL CENTER
+======================================================================
+
+LAUNCH:   $ python3 yoloapplication.py
+
+USAGE:
+  1. [Capture]:  Run camera script to gather images.
+  2. [Pull]:     Paste Roboflow code -> App downloads dataset.
+  3. [Train]:    Type Name (e.g. "NormModel") -> Start Training.
+  4. [Optimize]: Type "NormModel" -> Create Engine -> Run Live.
+
+======================================================================

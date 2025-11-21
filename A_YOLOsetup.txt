@@ -1,0 +1,124 @@
+______________________________________________________________________
+             
+                                                                        
+   JETSON AGX ORIN: MASTER SETUP & DEPLOYMENT GUIDE
+______________________________________________________________________
+
+This document combines system configuration (Wi-Fi, VS Code, GPIO) 
+with the specific workflow for the YOLO Control Center application.
+
+======================================================================
+PART 1: NETWORK & SYSTEM INFRASTRUCTURE
+======================================================================
+
+[1.1] CONNECT TO UAFS WI-FI (WPA Enterprise)
+      * Security:      WPA/WPA2 Enterprise
+      * Auth Method:   Tunneled TLS
+      * CA Cert:       Check "No CA certificate is required"
+      * Inner Auth:    MSCHAPv2 (no EAP)
+      * Credentials:   Enter UAFS username/password
+
+[1.2] ENABLE "NO PASSWORD" SUDO (Important for Scripts)
+      1. Open terminal: $ sudo visudo
+      2. Scroll to the very bottom.
+      3. Press 'Insert' key.
+      4. Add this line at the end (replace 'uafs' with your user):
+         uafs ALL=(ALL) NOPASSWD: ALL
+      5. Press 'Esc', then type :wq and hit Enter.
+
+[1.3] GITHUB SSH CONFIGURATION
+      1. Install Git:
+         $ sudo apt install git
+      2. Generate Key:
+         $ ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+      3. Start Agent:
+         $ eval "$(ssh-agent -s)"
+         $ ssh-add ~/.ssh/id_rsa
+      4. View Key (copy this to GitHub.com settings):
+         $ cat ~/.ssh/id_rsa.pub
+
+======================================================================
+PART 2: DEV TOOLS & REMOTE ACCESS
+======================================================================
+
+[2.1] INSTALL VS CODE (ARM64)
+      1. Install Curl:
+         $ sudo apt-get install curl
+      2. Download VS Code (ARM64):
+         $ curl -L https://update.code.visualstudio.com/latest/linux-deb-arm64/stable -o code_arm64.deb
+      3. Install:
+         $ sudo dpkg -i code_arm64.deb
+      4. Launch VS Code, go to Extensions, install "Python".
+
+[2.2] INSTALL NOMACHINE (Virtual Monitor)
+      1. Download:
+         $ wget https://download.nomachine.com/download/8.5/Arm/nomachine_8.5.3_1_arm64.deb
+         (Note: Check website for latest link if this fails)
+      2. Install:
+         $ sudo dpkg -i nomachine_8.5.3_1_arm64.deb
+
+======================================================================
+PART 3: HARDWARE PERIPHERALS (GPIO, I2C, SERIAL)
+======================================================================
+
+[3.1] ENABLE GPIO & I2C PERMISSIONS
+      1. Install Utils:
+         $ sudo pip3 install Jetson.GPIO adafruit-circuitpython-servokit
+      2. Add User Groups:
+         $ sudo groupadd -f -r gpio
+         $ sudo usermod -a -G gpio uafs
+         $ sudo usermod -aG i2c uafs
+         $ sudo usermod -aG dialout uafs
+      3. Reload Rules:
+         $ sudo udevadm control --reload-rules && sudo udevadm trigger
+
+[3.2] INSTALL V4L-UTILS (Camera Tools)
+      $ sudo apt-get install v4l-utils
+
+======================================================================
+PART 4: AI ENGINE SETUP (The "New" Workflow)
+======================================================================
+(!) CRITICAL: Do not skip. This replaces the old jetson-inference setup.
+
+[4.1] REMOVE CONFLICTING TORCH VERSIONS
+      $ sudo pip3 uninstall torch torchvision -y
+
+[4.2] INSTALL PYTORCH (JetPack 5 / Orin Specific)
+      $ wget https://developer.download.nvidia.com/compute/redist/jp/v511/pytorch/torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
+      $ pip3 install torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl
+
+[4.3] INSTALL TORCHVISION
+      $ sudo apt-get install libjpeg-dev zlib1g-dev -y
+      $ git clone --branch v0.15.2 https://github.com/pytorch/vision torchvision
+      $ cd torchvision
+      $ export BUILD_VERSION=0.15.2
+      $ python3 setup.py install --user
+      $ cd ..
+
+[4.4] INSTALL APP DEPENDENCIES
+      $ pip3 install ultralytics customtkinter Pillow
+
+======================================================================
+PART 5: RUNNING THE CONTROL CENTER
+======================================================================
+
+LAUNCH COMMAND:
+    $ python3 yoloapplication.py
+
+[TAB 1: CAPTURE]
+    * Launches camera script.
+    * Saves images locally for upload to Roboflow.
+
+[TAB 2: PULL IMGS]
+    * Paste the Roboflow snippet code here.
+    * App auto-cleans the name (e.g., "Yolo_inferencing-10").
+
+[TAB 3: TRAIN]
+    * Paste Dataset Name (from clipboard).
+    * Set Custom Model Name (e.g., "NormModel").
+    * App updates 'train.py' automatically.
+
+[TAB 4: OPTIMIZE]
+    * Input your Model Name (e.g., "NormModel").
+    * Click "Create Optimized" to build the TensorRT Engine.
+    * Click "Run Live Optimized" for high-speed inference.

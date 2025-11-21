@@ -1,0 +1,6 @@
+Our EEG needs to be in the
+Sequential Montage ---> Bipolar
+setting this is opposed to the 
+Referential Montage which takes all the values with refferencec to one cnst electrode
+
+
