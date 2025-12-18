@@ -1,0 +1,50 @@
+Intel RealSense D435i Installation Guide for Jetson Orin AGX
+============================================================
+
+commands to use
+make the script a excecutable
+chmod +x install_d435i.sh
+
+run it
+./install_d435i.sh
+
+
+Overview
+--------
+This package automates the installation of Intel RealSense drivers on NVIDIA Jetson Orin AGX running JetPack 6. 
+It addresses the specific issue where the default Jetson kernel does not support the D435i IMU (Gyro/Accelerometer), causing "Motion Module" errors.
+
+Contents of install_d435i.sh
+----------------------------
+The script performs the following automated steps:
+
+1. KERNEL PATCHING (The "Fix"):
+   - Clones the 'jetson-orin-librealsense' repository from JetsonHacks.
+   - Extracts pre-compiled kernel modules specific to JetPack 6.
+   - Installs these modules to enable HID/IMU support for the camera.
+
+2. SDK INSTALLATION:
+   - Registers Intel's secure public keys.
+   - Adds the official Intel Debian repository to the system sources.
+   - Installs 'librealsense2-utils' (Viewer/Tools) and 'librealsense2-dev' (C++/Python headers).
+
+3. FINALIZATION:
+   - Reloads udev rules to ensure the camera is detected with correct permissions via USB.
+
+How to Use
+----------
+1. Open a terminal in the folder containing the script.
+2. Make the script executable:
+   chmod +x install_d435i.sh
+3. Run the script:
+   ./install_d435i.sh
+4. Enter your sudo password when prompted.
+5. When the script finishes, REBOOT your Jetson.
+
+Verification
+------------
+After rebooting:
+1. Connect the D435i camera to a USB 3.0 port.
+2. Open a terminal and run:
+   realsense-viewer
+3. Toggle the "Motion Module" to ON. If the 3D cube moves when you tilt the camera, the installation was successful.
