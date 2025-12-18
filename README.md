@@ -21,11 +21,11 @@ and sets up GPIO/Hardware permissions.
 
     1. Open your terminal in this folder.
     
-    2. Make the script executable:
-       chmod +x setup_jetson.sh
+    2. Make the script executable (type in which number script ie. setup_jetson_JET5.sh):
+       chmod +x setup_jetson#.sh
 
     3. Run the installer:
-       ./setup_jetson.sh
+       ./setup_jetson_JET#.sh
 
     (You will need to enter your sudo password once at the start. 
      The rest is fully automated.)
